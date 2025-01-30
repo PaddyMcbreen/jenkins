@@ -1,14 +1,29 @@
 pipeline {
     agent any
+    
     stages {
-        stage('Pipeline Stages'){
-           steps {
-               sh "ls"
-           }
+        stage('Build') {
+            steps {
+                echo 'Starting the Build stage'
+                sh 'ls'
+                sh 'pwd'
+            }
         }
-        stage('Pipeline Stage 2'){
-           steps {
-               sh "pwd"
-           }
+        
+        stage('Test') {
+            steps {
+                echo 'Running Tests'
+                sh 'touch testfile.txt'
+                sh 'ls -l'
+            }
         }
+        
+        stage('Deploy') {
+            steps {
+                echo 'Deploying Application'
+                sh 'mv testfile.txt deployed_testfile.txt'
+                sh 'ls -l'
+            }
+        }
+    }
 }

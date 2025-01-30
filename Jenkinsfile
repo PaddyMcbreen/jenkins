@@ -32,27 +32,27 @@ pipeline {
 
  
 
-        stage("Security Scan") {
+        // stage("Security Scan") {
 
-            steps {
+        //     steps {
 
-                sh "trivy fs --format json -o trivy-report.json ."
+        //         sh "trivy fs --format json -o trivy-report.json ."
 
-            }
+        //     }
 
-            post {
+        //     post {
 
-                always {
+        //         always {
 
-                    // Archive the Trivy report
+        //             // Archive the Trivy report
 
-                    archiveArtifacts artifacts: 'trivy-report.json', onlyIfSuccessful: true
+        //             archiveArtifacts artifacts: 'trivy-report.json', onlyIfSuccessful: true
 
-                }
+        //         }
 
-            }
+        //     }
 
-        }
+        // }
 
  
 

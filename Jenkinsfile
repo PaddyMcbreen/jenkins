@@ -1,44 +1,131 @@
 pipeline {
+
     agent any
-    
-    environment {
-        IMAGE_NAME = "my-node-app"
-        CONTAINER_NAME = "node-app-container"
-        REPO_URL = "https://gitlab.com/Reece-Elder/devops-m5-nodeproject.git"
-    }
+
+ 
 
     stages {
-        stage('Clone Repository') {
+
+        stage('Init') {
+
             steps {
-                git branch: 'main', url: "${REPO_URL}"
+
+                sh 'docker rm -f $(docker ps -qa) || true'
+
+                sh 'docker network create new-network || true'
+
             }
+
         }
 
-        stage('Build Docker Image') {
+        stage('Build') {
+
             steps {
-                script {
-                    sh "docker build -t ${IMAGE_NAME} ."
-                }
+
+                sh 'docker build -t flask-app .'
+
+                sh 'docker build -t mynginx -f Dockerfile.nginx .'
+
             }
+
         }
 
-        stage('Run Container') {
+ 
+
+        stage("Security Scan") {
+
             steps {
-                script {
-                    sh "docker stop ${CONTAINER_NAME} || true"
-                    sh "docker rm ${CONTAINER_NAME} || true"
-                    sh "docker run -d -p 5000:5000 --name ${CONTAINER_NAME} ${IMAGE_NAME}"
-                }
+
+                sh "trivy fs --format json -o trivy-report.json ."
+
             }
+
+            post {
+
+                always {
+
+                    // Archive the Trivy report
+
+                    archiveArtifacts artifacts: 'trivy-report.json', onlyIfSuccessful: true
+
+                }
+
+            }
+
         }
+
+ 
+
+         stage('Deploy') {
+
+            steps {
+
+                sh 'docker run -d --name flask-app --network new-network flask-app:latest'
+
+                sh 'docker run -d -p 80:80 --name mynginx --network new-network mynginx:latest'
+
+            }
+
+        }
+
+ 
+
+        stage('Execute Tests') {
+
+         //   options {
+
+        //allowFailure true
+
+           // timeout(time: 30, unit: 'MINUTES')
+
+            //disableConcurrentBuilds()
+
+    //}
+
+            steps {
+
+                script {
+
+                    catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE'/*failure/success/aborted*/){
+
+                sh '''
+
+                python3 -m venv .venv
+
+                . .venv/bin/activate
+
+                pip install -r requirements.txt
+
+                python3 -m unittest discover -s tests .
+
+                deactivate
+
+                '''
+
+                    }
+
+                }
+
+            }
+
+        }
+
     }
 
     post {
+
         success {
-            echo "Deployment successful! App is running on port 5000."
+
+            echo 'Pipeline completed successfully!'
+
         }
+
         failure {
-            echo "Deployment failed."
+
+            echo 'Pipeline failed!'
+
         }
+
     }
+
 }
